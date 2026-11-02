@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+work/
+my_hand/
+hand/
+glyphs/
+*.pdf
+!assets/handwriting_template.pdf
+!examples/*.pdf
+.DS_Store
