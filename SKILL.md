@@ -41,7 +41,12 @@ Read `doc.md` and clean it before rendering. This decides how good it looks:
 - Remove running headers, footers, page numbers and PDF leftovers
 - Images and charts can't be handwritten: remove them and tell the person which
 - Tables wider than 3 or 4 short columns: rewrite as lists or sentences
-- Maths in plain text (`Q^2` becomes `Q squared`); bold, italics and colour are dropped
+- Maths: powers and formulas can be written `x^2`, `x^{n+1}`, `10^-9`, `H_2O`, `a_{ij}` (or with
+  Unicode `x²`, `H₂O`); they are drawn raised or lowered in the writer's own style. Symbols such as
+  `± × ÷ ≠ ≤ ≥ ° ½ ¼ ¾ ✓ ✗ ① ② ③ ★ ₹ % { } ~ \ ^ —`, Greek letters (`α β γ δ θ λ μ σ φ ω Δ Σ Ω`) and
+  accented letters (`é è ñ ö ü ...`) are drawn directly. A symbol the handwriting set lacks is
+  reported as "left as gaps"; write it another way or add it (section E). Bold, italics and
+  colour are dropped
 - Supported: `#`/`##`/`###` headings, `-` and `1.` lists, `|` tables, blank line between
   paragraphs, `---` for a new page
 
@@ -104,6 +109,22 @@ Check `hand/contact_sheet.png`; ask for a re-shoot of any page it couldn't read.
 python SKILL_DIR/scripts/font_to_glyphs.py SomeHandwritingFont.ttf hand/
 ```
 
+### E. Teach it more symbols (maths, Greek, accents)
+
+Any hand set, including the bundled one, can be extended from a photo of the
+person writing the symbols they need once or twice, on ruled paper, with a few
+capital letters (H, C, O, T) and, if wanted, `x^2` and `H_2O` written as they
+normally would so the raised and lowered sizes match. Rotate the photo upright, then:
+```bash
+python SKILL_DIR/scripts/harvest.py segment work/ symbols.jpg
+python SKILL_DIR/scripts/add_symbols.py work/ hand/        # hand/ is changed in place
+```
+Between the two, read `work/sheets/*.png` and write `work/labels.json`: `"p0.g12": "±"`,
+`"p0.g30+g31": "\u00bd"` (pieces of one symbol), `"p0.g40": "cal:H"` (three or more capitals per
+photo, used to measure the writing size), and optional `"_script"` pairs (see the top of
+`add_symbols.py`). The tool matches size and pen weight to the set and adds accent marks
+that the renderer reuses on other letters. Never label anything personal.
+
 ## Step 3: Sample, tune, confirm
 
 ```bash
@@ -144,6 +165,7 @@ and anything left out (images, missing characters).
 - Letters are placed side by side; only whole-word samples carry real joins
 - Images, charts and complex tables are not drawn
 - Handwriting fits about 150 to 250 words a page, so page counts grow
+- Symbols the handwriting set doesn't contain (the bundled one has no `π √ ∞ ∴ ≈ € £ ©` or non-Latin scripts) show as gaps or spelled-out names
 
 ## Files
 
@@ -154,6 +176,7 @@ and anything left out (images, missing characters).
 - `scripts/render.py` Markdown to handwritten PDF
 - `scripts/doc_to_md.py` document to Markdown
 - `scripts/harvest.py` photos of notes to glyph set (segment, then build)
+- `scripts/add_symbols.py` add maths, Greek and accent symbols to a glyph set from a photo
 - `scripts/pageclean.py` photo cleaning used by harvest.py
 - `scripts/extract_glyphs.py` filled template to glyph set
 - `scripts/font_to_glyphs.py` font to glyph set

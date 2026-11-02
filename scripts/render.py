@@ -45,7 +45,55 @@ CHAR_MAP = {
     "–": "-", "—": "-", "−": "-", "‐": "-", "‑": "-", "_": "-",
     "…": "...", "×": "x", "{": "(", "}": ")", "\\": "/", "~": "-", "^": "'", "`": "'", " ": " ", "•": "-", "·": ".",
     "→": "->", "₹": "Rs", "←": "<-", "≥": ">=", "≤": "<=", "°": "o",
+    # used only when the handwriting set has no real sample of the symbol
+    "½": "1/2", "⅓": "1/3", "⅔": "2/3", "¼": "1/4", "¾": "3/4", "⅕": "1/5", "⅛": "1/8",
+    "±": "+-", "÷": "/", "≠": "!=", "≈": "~~", "⇒": "=>", "⇐": "<=", "↔": "<->", "∴": ":.",
+    "✓": "/", "✔": "/", "✗": "x", "✘": "x", "★": "*", "☆": "*", "©": "(c)", "®": "(R)", "™": "TM",
+    "∞": "inf", "√": "root", "€": "EUR", "£": "GBP", "¢": "c",
+    "α": "alpha", "β": "beta", "γ": "gamma", "δ": "delta", "ε": "epsilon", "θ": "theta", "λ": "lambda",
+    "μ": "mu", "π": "pi", "ρ": "rho", "σ": "sigma", "τ": "tau", "φ": "phi", "ω": "omega",
+    "Δ": "Delta", "Σ": "Sigma", "Ω": "Omega", "Π": "Pi", "Φ": "Phi",
+    **{c: f"({i})" for i, c in enumerate("①②③④⑤⑥⑦⑧⑨⑩", start=1)},
 }
+
+# Superscripts and subscripts are the normal digit/letter glyphs, made smaller
+# and moved up or down. Sizes come from the handwriting set (meta.script, measured
+# from the writer's own x^2 and H_2O) or these defaults, in capital heights.
+SUP_CHARS = dict(zip("⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿⁱ", "0123456789+-=()ni"))
+SUB_CHARS = dict(zip("₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑₒₓ", "0123456789+-=()aeox"))
+SUP_KEY, SUB_KEY = "\x01sup:", "\x01sub:"
+SCRIPT_DEFAULTS = {"sup_scale": 0.65, "sup_raise": 1.0, "sub_scale": 0.58, "sub_drop": 0.35}
+_SUP_RE = re.compile(r"\^(?:\{([^{}]*)\}|([+\-−]?\d+)|([+\-−]?[A-Za-z]))")
+_SUB_RE = re.compile(r"_(?:\{([^{}]*)\}|(\d+)|([A-Za-z])(?![A-Za-z]))")
+NO_ACCENT_BASES = set("ijIJ")          # the accent would collide with the dot
+
+
+def script_runs(word):
+    """Split a word into (char, mode) pairs; mode is None, 'sup' or 'sub'.
+
+    x^2  x^{n+1}  10^-9  H_2O  a_{ij}  and the Unicode forms x² H₂O are all understood.
+    """
+    out, i, n = [], 0, len(word)
+    while i < n:
+        c = word[i]
+        if c in SUP_CHARS:
+            out.append((SUP_CHARS[c], "sup"))
+        elif c in SUB_CHARS:
+            out.append((SUB_CHARS[c], "sub"))
+        elif c == "^" and i > 0 and _SUP_RE.match(word, i):
+            m = _SUP_RE.match(word, i)
+            out += [(ch.replace("−", "-"), "sup") for ch in "".join(g for g in m.groups() if g)]
+            i = m.end()
+            continue
+        elif c == "_" and i > 0 and (word[i - 1].isalnum() or word[i - 1] in ")]}") and _SUB_RE.match(word, i):
+            m = _SUB_RE.match(word, i)
+            out += [(ch.replace("−", "-"), "sub") for ch in "".join(g for g in m.groups() if g)]
+            i = m.end()
+            continue
+        else:
+            out.append((c, None))
+        i += 1
+    return out
 
 
 # ------------------------------------------------------------------ glyphs
@@ -87,10 +135,121 @@ class GlyphSet:
     def has(self, ch):
         return ch in self.g
 
+    # derived glyphs ---------------------------------------------------
+    @staticmethod
+    def _thicken(im, amount):
+        """Shrunk strokes look thin next to full-size ones (the pen is the same);
+        thicken them a little."""
+        return Image.blend(im, im.filter(ImageFilter.MaxFilter(3)), amount)
+
+    def _script_params(self):
+        p = dict(SCRIPT_DEFAULTS)
+        p.update({k: v for k, v in self.meta.get("script", {}).items() if k in SCRIPT_DEFAULTS})
+        cap = self.meta.get("script", {}).get("cap_mm") or self.meta.get("cap_height_mm") or 1.5 * self.meta["x_height_mm"]
+        hs = [v["h"] for d in "0123456789" for v in self.g.get(d, [])]
+        digit_h = sorted(hs)[len(hs) // 2] if hs else cap
+        return p, cap, digit_h
+
+    def derive(self, mode, ch):
+        """Key of a smaller, raised ('sup') or lowered ('sub') copy of glyph `ch`, or None."""
+        key = (SUP_KEY if mode == "sup" else SUB_KEY) + ch
+        if key in self.g:
+            return key
+        if ch not in self.g:
+            return None
+        p, cap, digit_h = self._script_params()
+        # never bigger than 80% / 72% of the normal glyph, so they always read as smaller
+        if mode == "sup":
+            r, shift = min(p["sup_scale"] * cap / digit_h, 0.8), p["sup_raise"] * cap
+        else:
+            r, shift = min(p["sub_scale"] * cap / digit_h, 0.72), -p["sub_drop"] * cap
+        vs = []
+        for v in self.g[ch]:
+            src = v["img"]
+            nw, nh = max(1, round(src.width * r)), max(1, round(src.height * r))
+            d = dict(v)
+            d["img"] = self._thicken(src.resize((nw, nh), Image.LANCZOS), 0.55)
+            d["w"], d["h"] = v["w"] * r, v["h"] * r
+            d["desc"], d["top"] = v["desc"] * r - shift, v["top"] * r + shift
+            d["pad_px"] = [v["pad_px"][0] * nw / src.width, v["pad_px"][1] * nh / src.height]
+            vs.append(d)
+        self.g[key] = vs
+        return key
+
+    def _composite(self, parts):
+        """Join glyph pieces into one new variant. parts: [(variant, scale, x_mm, up_mm)],
+        x_mm = left of the piece's ink from the left of the whole, up_mm = how far its baseline is raised."""
+        boxes = []
+        for v, r, x, up in parts:
+            top = v["top"] * r + up
+            boxes.append((x, x + v["w"] * r, top, top - v["h"] * r))
+        x0, x1 = min(b[0] for b in boxes), max(b[1] for b in boxes)
+        ytop, ybot = max(b[2] for b in boxes), min(b[3] for b in boxes)
+        ppm = parts[0][0].get("ppm", self.src_px)
+        pad = 3
+        W, Hh = int(math.ceil((x1 - x0) * ppm)) + 2 * pad + 1, int(math.ceil((ytop - ybot) * ppm)) + 2 * pad + 1
+        acc = np.zeros((Hh, W), np.float32)
+        for (v, r, x, up), b in zip(parts, boxes):
+            im = v["img"]
+            nw, nh = max(1, round(im.width * r)), max(1, round(im.height * r))
+            if r != 1:
+                im = self._thicken(im.resize((nw, nh), Image.LANCZOS), 0.55)
+            arr = np.asarray(im, np.float32) / 255.0
+            ox = int(round(pad + (b[0] - x0) * ppm - v["pad_px"][0] * nw / v["img"].width))
+            oy = int(round(pad + (ytop - b[2]) * ppm - v["pad_px"][1] * nh / v["img"].height))
+            ys0, xs0 = max(oy, 0), max(ox, 0)
+            ys1, xs1 = min(oy + nh, Hh), min(ox + nw, W)
+            if ys1 > ys0 and xs1 > xs0:
+                sub = arr[ys0 - oy:ys1 - oy, xs0 - ox:xs1 - ox]
+                acc[ys0:ys1, xs0:xs1] = 1 - (1 - acc[ys0:ys1, xs0:xs1]) * (1 - sub)
+        return {"img": Image.fromarray((np.clip(acc, 0, 1) * 255).astype(np.uint8)),
+                "w": x1 - x0, "h": ytop - ybot, "desc": -ybot, "top": ytop, "pad_px": [pad, pad], "ppm": ppm}
+
+    def _compose(self, ch):
+        """Build `ch` from parts we do have: an accented letter from the plain letter and a
+        separately stored accent mark; % from a slash and two small circles. True if built."""
+        if ch == "%":
+            slash, circle = self.g.get("/"), self.g.get("o")
+            if not slash or not circle:
+                return False
+            vs = []
+            for i, s in enumerate(slash):
+                c1, c2 = circle[i % len(circle)], circle[(i + 1) % len(circle)]
+                r = 0.55
+                cw1, cw2 = c1["w"] * r, c2["w"] * r
+                sx = cw1 * 0.75
+                parts = [(c1, r, 0.0, s["top"] - c1["top"] * r),
+                         (s, 1.0, sx, 0.0),
+                         (c2, r, sx + s["w"] - cw2 * 0.35, -s["desc"] + (c2["h"] - c2["top"]) * r)]
+                vs.append(self._composite(parts))
+            self.g["%"] = vs
+            return True
+        nfd = unicodedata.normalize("NFD", ch)
+        if len(nfd) != 2:
+            return False
+        base, mark = nfd
+        if base not in self.g or mark not in self.g:
+            return False
+        lift = 0.0
+        if base.isupper():
+            lift = max((self.meta.get("cap_height_mm") or 0) - self.meta["x_height_mm"], 0.0)
+        vs = []
+        for i, b in enumerate(self.g[base]):
+            m = self.g[mark][i % len(self.g[mark])]
+            up = lift
+            if base in NO_ACCENT_BASES:          # i and j have a dot: the accent goes above it
+                up = max(b["top"] + 0.35 - (m["top"] - m["h"]), lift)
+            parts = [(b, 1.0, 0.0, 0.0), (m, 1.0, (b["w"] - m["w"]) / 2, up)]
+            vs.append(self._composite(parts))
+        self.g[ch] = vs
+        return True
+
     def resolve(self, ch):
         """Map a character to something we can draw. Returns a string (may be
         several glyphs, e.g. '...') or None to use the fallback font."""
         if ch in self.g:
+            return ch
+        if self._compose(ch):
             return ch
         if ch in CHAR_MAP:
             mapped = CHAR_MAP[ch]
@@ -272,9 +431,15 @@ class Layout:
 
     def _letters(self, word, scale, out):
         total = 0.0
-        for raw in word:
-            mapped = self.gs.resolve(raw)
-            seq = mapped if mapped is not None else [None]
+        for raw, mode in script_runs(word):
+            if mode:
+                mapped = self.gs.resolve(raw)
+                seq = [self.gs.derive(mode, c) for c in mapped] if mapped is not None else [None]
+                if any(k is None for k in seq):          # no glyph to shrink: draw it full size
+                    seq = [None] if mapped is None else list(mapped)
+            else:
+                mapped = self.gs.resolve(raw)
+                seq = mapped if mapped is not None else [None]
             for ch in seq:
                 if ch is None:
                     if self.fb_font is not None:
@@ -319,6 +484,8 @@ class Layout:
         return x
 
     def write_text(self, text, scale=1.0, first_indent=0.0, hang=0.0, underline=False, right_edge=None):
+        # spaces inside x^{n + 1} or H_{2 3} must not split the word
+        text = re.sub(r"([\^_])\{([^{}]*)\}", lambda m: m.group(1) + "{" + m.group(2).replace(" ", "") + "}", text)
         words = text.split(" ")
         right_edge = right_edge or PAGE_W - self.right
         x = self.line_x0 + first_indent
@@ -678,7 +845,7 @@ def main():
         a.word_space = style.get("word_space", 0.95)
     if a.letter_space is None:
         a.letter_space = style.get("letter_space", 0.14)
-    blocks = parse_md(open(a.input, encoding="utf-8").read())
+    blocks = parse_md(unicodedata.normalize("NFC", open(a.input, encoding="utf-8").read()))
     if not blocks:
         sys.exit("Nothing to render.")
 

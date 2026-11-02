@@ -21,7 +21,10 @@ is optional.
    - remove page numbers, running headers/footers, PDF leftovers
    - remove images and charts and tell the user which ones
    - rewrite tables wider than 3 or 4 short columns as lists
-   - write maths as plain words; bold and italics are dropped anyway
+   - maths: write powers and formulas as `x^2`, `x^{n+1}`, `10^-9`, `H_2O`, `a_{ij}` (or Unicode
+     `x²`, `H₂O`); they are drawn raised/lowered. Symbols `± × ÷ ≠ ≤ ≥ ° ½ ¼ ¾ ✓ ✗ ① ② ③ ★ ₹ %`,
+     Greek `α β γ δ θ λ μ σ φ ω Δ Σ Ω` and accented letters are drawn as handwriting. Anything
+     else (e.g. `π √ ∞ €`) is reported as a gap or spelled out; bold and italics are dropped
    - supported: `#`/`##`/`###` headings, `-` and `1.` lists, `|` tables,
      blank line between paragraphs, `---` for a new page
 3. **Render a sample and show it to the user:**
@@ -42,6 +45,11 @@ with `--hand my_hand/`. To learn from photos of existing notes instead, follow
 "Option A" in README.md: segment, then read each `work/sheets/*.png` and write
 `work/labels.json` with what each line says, then build. Never label names,
 ID numbers or signatures.
+
+To add symbols a hand set lacks (maths, Greek, accents), photograph them written once or twice
+on ruled paper with a few capitals, then `python scripts/harvest.py segment work/ photo.jpg`,
+label `work/labels.json` (format at the top of `scripts/add_symbols.py`) and run
+`python scripts/add_symbols.py work/ my_hand/`.
 
 ## Don't
 

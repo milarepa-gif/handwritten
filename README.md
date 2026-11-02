@@ -6,8 +6,9 @@ Turn a typed document into pages that look written by hand.
 
 *An Aesop fable that was never written by hand, rendered on exercise-book paper with the bundled handwriting.*
 
-- **Works out of the box.** A bundled handwriting set (about 90 characters and 230 common whole words, from the author's own handwriting) is included.
+- **Works out of the box.** A bundled handwriting set from the author's own writing is included: about 135 characters (letters, digits, maths and science symbols, Greek, accents) and 230 common whole words.
 - **Learns a handwriting** from photos of notes, from a printable template, or from a font.
+- **Maths and science ready.** Powers and formulas (`x^2`, `H_2O`), Greek letters, fractions, ticks and accented letters are drawn in the same hand, with super- and subscripts sized from the author's own writing.
 - **Fast and offline.** A 40-page document renders in about 20 seconds on a laptop CPU. No GPU, no image model, no internet.
 - **Works with AI assistants.** Use it as a Claude skill, or hand `AGENTS.md` to ChatGPT, Gemini, Cursor, Codex or any agent that can run Python.
 
@@ -52,6 +53,44 @@ python scripts/render.py default notes.md out.pdf --paper notebook
 ```
 
 **For the best result**, remove page numbers, running headers and images from the text, and turn wide tables into lists. Handwriting fits roughly 150 to 250 words a page, so expect more pages than the typed original, or use `--fit-pages N`.
+
+## Maths, science and symbols
+
+Write powers and formulas in the text and they come out raised or lowered, like this:
+
+| You write | You get |
+|---|---|
+| `x^2`, `E = mc^2`, `10^-9`, `x^{n+1}` | x², mc², 10⁻⁹, xⁿ⁺¹ (raised) |
+| `H_2O`, `CO_2`, `x_1`, `a_{ij}` | H₂O, CO₂, x₁, aᵢⱼ (lowered) |
+| `x²`, `H₂O` (Unicode) | the same |
+
+Only a number, one letter or a `{...}` group after `^` or `_` is raised or lowered, so `x^2y` is x²y. An underscore in ordinary words (`snake_case`) is left alone.
+
+The bundled handwriting also draws these as real handwriting:
+
+| | |
+|---|---|
+| Maths | `+ - = ± × ÷ ≠ ≤ ≥ ° % < >` and `{ } ( ) [ ] ~ \ ^ —` |
+| Fractions | `½ ⅓ ¼ ¾` |
+| Marks | `✓ ✗ ① ② ③ ★` |
+| Greek | `α β γ δ θ λ μ σ φ ω Δ Σ Ω` |
+| Currency | `₹ $` |
+| Accents | `é è ê â à ô ö ü ï ñ ...` (composed from the letter and a real accent mark) |
+
+Symbols a handwriting set doesn't have show as gaps (listed after rendering). A few are spelled out instead, such as `π` as "pi", `½` as "1/2" or `①` as "(1)". Use `--fallback-font` to fill the rest from a font, or add them to your set (next section).
+
+### Add more symbols to a handwriting set
+
+Write the symbols you need once or twice on ruled paper, next to a few capital letters (H, C, O, T), then photograph the page. If you want your super- and subscripts to match, also write `x²` and `H₂O` the way you normally would. This works for the bundled set and for your own.
+
+```bash
+python scripts/harvest.py segment work/ symbols.jpg           # numbers every mark it finds
+# look at work/sheets/*.png and write work/labels.json, e.g.
+#   {"p0.g12": "±", "p0.g30+g31": "\u00bd", "p0.g40": "cal:H", "p0.g41": "cal:H", "p0.g42": "cal:C"}
+python scripts/add_symbols.py work/ my_hand/                  # or assets/default_hand
+```
+
+`cal:H` marks capitals used to measure your writing size (label at least three). The tool matches size and pen weight to the set, positions each symbol on the line, replaces old samples that are far off-size, and cuts accent marks off any accented letters so the renderer can put them on other letters. The label format is at the top of `scripts/add_symbols.py`.
 
 ## Use it with Claude
 
@@ -163,7 +202,8 @@ These work with both `handwrite.py` and `scripts/render.py`. Run `python scripts
 
 Known limits, from testing:
 
-- **Characters.** The bundled handwriting covers letters, digits and common punctuation, and curly quotes are mapped to straight ones. It has no `%`, currency signs (`€ £`), `© ®`, accented letters, or non-Latin scripts. These are left as gaps and listed in the output. Pass `--fallback-font some.ttf` to fill them, or build your own handwriting set that includes them.
+- **Characters.** The bundled handwriting covers letters, digits, punctuation, common maths and science symbols, Greek letters and most Latin accents (see above). It has no `π √ ∞ ∴ ≈ € £ © ®`, no `ç å`, and no non-Latin scripts. Those are spelled out or left as gaps and listed in the output. Pass `--fallback-font some.ttf` to fill them, or add them with `scripts/add_symbols.py`.
+- **Maths layout is inline only.** There are no stacked fractions (write `a/b`), square-root bars, matrices or integral limits.
 - **Only about 20 to 30% of words use a whole-word sample.** The rest are built letter by letter, so the look is closest to the original on common words and a little more "assembled" elsewhere. A heavily joined cursive hand is only partly reproduced.
 - **Images, charts and equations are not drawn.** Rewrite complex tables and maths as text first. Bold, italics and colour are dropped.
 - **Scanned PDFs can't be read.** A PDF made of page images has no text; use the original document, or retype or OCR it into a `.txt` first.
@@ -184,6 +224,7 @@ assets/handwriting_template.pdf printable template for your own handwriting
 scripts/render.py               Markdown -> handwritten PDF
 scripts/doc_to_md.py            .docx/.pdf/.txt -> Markdown
 scripts/harvest.py              photos of notes -> handwriting set
+scripts/add_symbols.py          photos of symbols -> added to a handwriting set
 scripts/pageclean.py            photo cleaning (ruled lines, shading, tilt)
 scripts/extract_glyphs.py       filled template -> handwriting set
 scripts/font_to_glyphs.py       font -> handwriting set
