@@ -236,9 +236,9 @@ class GlyphSet:
         vs = []
         for i, b in enumerate(self.g[base]):
             m = self.g[mark][i % len(self.g[mark])]
-            up = lift
+            up = lift if m["top"] - m["h"] > 0 else 0.0      # only accents above the letter go higher on capitals
             if base in NO_ACCENT_BASES:          # i and j have a dot: the accent goes above it
-                up = max(b["top"] + 0.35 - (m["top"] - m["h"]), lift)
+                up = max(b["top"] + 0.35 - (m["top"] - m["h"]), up)
             parts = [(b, 1.0, 0.0, 0.0), (m, 1.0, (b["w"] - m["w"]) / 2, up)]
             vs.append(self._composite(parts))
         self.g[ch] = vs

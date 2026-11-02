@@ -6,7 +6,7 @@ Turn a typed document into pages that look written by hand.
 
 *An Aesop fable that was never written by hand, rendered on exercise-book paper with the bundled handwriting.*
 
-- **Works out of the box.** A bundled handwriting set from the author's own writing is included: about 135 characters (letters, digits, maths and science symbols, Greek, accents) and 230 common whole words.
+- **Works out of the box.** A bundled handwriting set from the author's own writing is included: about 150 characters (letters, digits, maths and science symbols, Greek, currency, accents) and 230 common whole words.
 - **Learns a handwriting** from photos of notes, from a printable template, or from a font.
 - **Maths and science ready.** Powers and formulas (`x^2`, `H_2O`), Greek letters, fractions, ticks and accented letters are drawn in the same hand, with super- and subscripts sized from the author's own writing.
 - **Fast and offline.** A 40-page document renders in about 20 seconds on a laptop CPU. No GPU, no image model, no internet.
@@ -70,14 +70,15 @@ The bundled handwriting also draws these as real handwriting:
 
 | | |
 |---|---|
-| Maths | `+ - = ± × ÷ ≠ ≤ ≥ ° % < >` and `{ } ( ) [ ] ~ \ ^ —` |
+| Maths | `+ - = ± × ÷ ≠ ≈ ≤ ≥ ° % < > √ ∞ ∴ ⇒` and `{ } ( ) [ ] ~ \ ^ —` |
+| Arrows | `← ↑ → ↓ ⇒` |
 | Fractions | `½ ⅓ ¼ ¾` |
 | Marks | `✓ ✗ ① ② ③ ★` |
-| Greek | `α β γ δ θ λ μ σ φ ω Δ Σ Ω` |
-| Currency | `₹ $` |
-| Accents | `é è ê â à ô ö ü ï ñ ...` (composed from the letter and a real accent mark) |
+| Greek | `α β γ δ θ λ μ π σ φ ω Δ Σ Ω` |
+| Currency and marks | `₹ $ € £ © ®` |
+| Accents | `é è ê â à ô ö ü ï ñ ç å ...` (composed from the letter and a real accent mark) |
 
-Symbols a handwriting set doesn't have show as gaps (listed after rendering). A few are spelled out instead, such as `π` as "pi", `½` as "1/2" or `①` as "(1)". Use `--fallback-font` to fill the rest from a font, or add them to your set (next section).
+Symbols a handwriting set doesn't have show as gaps (listed after rendering). A few are spelled out instead, such as `ε` as "epsilon", `⇐` as "<=" or `④` as "(4)". Use `--fallback-font` to fill the rest from a font, or add them to your set (next section).
 
 ### Add more symbols to a handwriting set
 
@@ -202,7 +203,7 @@ These work with both `handwrite.py` and `scripts/render.py`. Run `python scripts
 
 Known limits, from testing:
 
-- **Characters.** The bundled handwriting covers letters, digits, punctuation, common maths and science symbols, Greek letters and most Latin accents (see above). It has no `π √ ∞ ∴ ≈ € £ © ®`, no `ç å`, and no non-Latin scripts. Those are spelled out or left as gaps and listed in the output. Pass `--fallback-font some.ttf` to fill them, or add them with `scripts/add_symbols.py`.
+- **Characters.** The bundled handwriting covers letters, digits, punctuation, common maths and science symbols, Greek letters and most Latin accents (see above). It has no non-Latin scripts and none of `∑ ∫ ∂ ∈ ∪ ∩ ⊂ ≡ ε ρ τ` (and similar). Those are spelled out or left as gaps and listed in the output. Pass `--fallback-font some.ttf` to fill them, or add them with `scripts/add_symbols.py`.
 - **Maths layout is inline only.** There are no stacked fractions (write `a/b`), square-root bars, matrices or integral limits.
 - **Only about 20 to 30% of words use a whole-word sample.** The rest are built letter by letter, so the look is closest to the original on common words and a little more "assembled" elsewhere. A heavily joined cursive hand is only partly reproduced.
 - **Images, charts and equations are not drawn.** Rewrite complex tables and maths as text first. Bold, italics and colour are dropped.

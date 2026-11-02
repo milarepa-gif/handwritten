@@ -22,9 +22,9 @@ is optional.
    - remove images and charts and tell the user which ones
    - rewrite tables wider than 3 or 4 short columns as lists
    - maths: write powers and formulas as `x^2`, `x^{n+1}`, `10^-9`, `H_2O`, `a_{ij}` (or Unicode
-     `x²`, `H₂O`); they are drawn raised/lowered. Symbols `± × ÷ ≠ ≤ ≥ ° ½ ¼ ¾ ✓ ✗ ① ② ③ ★ ₹ %`,
-     Greek `α β γ δ θ λ μ σ φ ω Δ Σ Ω` and accented letters are drawn as handwriting. Anything
-     else (e.g. `π √ ∞ €`) is reported as a gap or spelled out; bold and italics are dropped
+     `x²`, `H₂O`); they are drawn raised/lowered. Symbols `± × ÷ ≠ ≈ ≤ ≥ ° √ ∞ ∴ ⇒ ← ↑ → ↓ ½ ¼ ¾ ✓ ✗ ① ② ③ ★ ₹ € £ © ® %`,
+     Greek `α β γ δ θ λ μ π σ φ ω Δ Σ Ω` and accented letters are drawn as handwriting. Anything
+     else (e.g. `∑ ∫ ∂ ∈`) is reported as a gap or spelled out; bold and italics are dropped
    - supported: `#`/`##`/`###` headings, `-` and `1.` lists, `|` tables,
      blank line between paragraphs, `---` for a new page
 3. **Render a sample and show it to the user:**

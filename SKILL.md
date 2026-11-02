@@ -43,7 +43,7 @@ Read `doc.md` and clean it before rendering. This decides how good it looks:
 - Tables wider than 3 or 4 short columns: rewrite as lists or sentences
 - Maths: powers and formulas can be written `x^2`, `x^{n+1}`, `10^-9`, `H_2O`, `a_{ij}` (or with
   Unicode `x²`, `H₂O`); they are drawn raised or lowered in the writer's own style. Symbols such as
-  `± × ÷ ≠ ≤ ≥ ° ½ ¼ ¾ ✓ ✗ ① ② ③ ★ ₹ % { } ~ \ ^ —`, Greek letters (`α β γ δ θ λ μ σ φ ω Δ Σ Ω`) and
+  `± × ÷ ≠ ≈ ≤ ≥ ° √ ∞ ∴ ⇒ ← ↑ → ↓ ½ ¼ ¾ ✓ ✗ ① ② ③ ★ ₹ € £ © ® % { } ~ \ ^ —`, Greek letters (`α β γ δ θ λ μ π σ φ ω Δ Σ Ω`) and
   accented letters (`é è ñ ö ü ...`) are drawn directly. A symbol the handwriting set lacks is
   reported as "left as gaps"; write it another way or add it (section E). Bold, italics and
   colour are dropped
@@ -165,7 +165,7 @@ and anything left out (images, missing characters).
 - Letters are placed side by side; only whole-word samples carry real joins
 - Images, charts and complex tables are not drawn
 - Handwriting fits about 150 to 250 words a page, so page counts grow
-- Symbols the handwriting set doesn't contain (the bundled one has no `π √ ∞ ∴ ≈ € £ ©` or non-Latin scripts) show as gaps or spelled-out names
+- Symbols the handwriting set doesn't contain (the bundled one has no non-Latin scripts and none of `∑ ∫ ∂ ∈ ∪ ∩ ⊂ ≡`) show as gaps or spelled-out names
 
 ## Files
 

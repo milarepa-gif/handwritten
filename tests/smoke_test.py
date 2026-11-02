@@ -38,7 +38,9 @@ Water is H_2O and CO₂. Also x^2 + y_{n+1} = 10^-9, E = mc², 25% of ½ or ¼ o
 
 Compare: 1 ≤ x ≥ 0, x ≠ 1, 5 × 3 ÷ 2 ± 1, 90°, α β γ δ θ λ μ σ φ ω Δ Σ Ω.
 
-Marks ✓ ✗ ① ② ③ ★, price ₹5 or $5, café résumé naïve señor Über crème, { } [ ] ~ \\ ^ and a — dash.
+Marks ✓ ✗ ① ② ③ ★, price ₹5 or $5 or €5 or £5, © ®, café résumé naïve señor Über crème façade Ångström, { } [ ] ~ \\ ^ and a — dash.
+
+More: πr² ≈ 3, √4 = 2, x → ∞, a ⇒ b, ∴ done, ← ↑ → ↓.
 """
 
 

@@ -20,14 +20,18 @@ labels.json uses the same keys as harvest.py:
   "p0.g103": "+"            candidate 103 on page 0 is a plus
   "p0.g112+g113": "≥"        two pieces that make one symbol
   "p0.g147": "cal:H"        a capital H used only to measure your writing size
+  "p0.g20": "cal:\u00e2"        ...or any character the set already has (here an a with circumflex)
   "_script": {              pairs (base, small) measuring your super/subscripts:
       "sup": [["p0.g115", "p0.g116"]],        x and the raised 2 in x^2
       "sub": [["p0.g147", "p0.g148"]]}        H and the lowered 2 in H_2O
 
-Calibration: this tool works out how big your writing is by comparing the
-capitals you label "cal:H", "cal:C", "cal:O" (any of A-Z) on each page with the
-same capitals already in the hand set. Label at least three per page. The
-_script pairs are optional; without them the renderer uses typical values.
+Calibration: this tool works out how big your writing is on each photo by
+comparing marks labelled "cal:X" with the same character X already in the hand
+set: capitals (cal:H, cal:T ...) are compared with the set's capital height, any
+other character with the set's own samples of it. Label at least three per
+photo; use plain letters or symbols you wrote at normal size, not ones that are
+resized on purpose (fractions, circled digits). The _script pairs are optional;
+without them the renderer uses typical values.
 
 Accented letters (e grave, o diaeresis, ...) are also split into the letter and
 the accent mark, so the renderer can put the same marks on other letters.
@@ -56,9 +60,9 @@ OUT_PPM, XH = H.OUT_PPM, H.XH_STD
 #   top    ink top at the given height above the baseline
 #   like   copy size and position from the same character already in the set
 SPEC = {}
-for _c in "èöüâàêñαδθλσωΔΣΩ":
+for _c in "èöüâàêñαδθλσωΔΣΩπ√€£åìòù":
     SPEC[_c] = ("sit",)
-for _c in "βγμφ$₹":
+for _c in "βγμφ$₹ç":
     SPEC[_c] = ("line",)
 SPEC.update({
     "+": ("centre", 0.5), "-": ("centre", 0.5), "=": ("centre", 0.5),
@@ -73,10 +77,15 @@ SPEC.update({
     "(": ("like", "("), ")": ("like", ")"), "[": ("centre", 0.6, 1.5), "]": ("centre", 0.6, 1.5),
     "—": ("centre", 0.5), "°": ("top", 1.75, 0.4),
     "★": ("centre", 0.8, 1.0),
+    "⇒": ("centre", 0.55), "←": ("centre", 0.5), "→": ("centre", 0.5),
+    "↑": ("centre", 0.7), "↓": ("centre", 0.7),
+    "∞": ("centre", 0.5), "≈": ("centre", 0.55), "∴": ("centre", 0.5),
+    "©": ("centre", 0.75, 1.0), "®": ("centre", 0.75, 1.0),
 })
 
 ACCENT_MARKS = {"è": "̀", "à": "̀", "ö": "̈", "ü": "̈",
-                "â": "̂", "ê": "̂", "ñ": "̃"}
+                "â": "̂", "ê": "̂", "ñ": "̃",
+                "å": "̊", "ò": "̀", "ù": "̀"}
 
 
 def median(xs):
@@ -153,21 +162,31 @@ def main():
         cuts.append({"pno": pno, "line": lno, "text": text, "comps": comps, "alpha": alpha, "ox": ox, "oy": oy,
                      "top": oy + y0, "bot": oy + y1, "h": y1 - y0})
 
-    # ---- how big is the writing on each page? Capital height on the photo vs the hand's own
-    # (median) capital height. Individual capitals in a hand set vary too much to compare one by one.
+    # ---- how big is the writing on each photo? Marks labelled cal:X are compared with the same
+    # character already in the set (capitals: with the set's median capital height, because single
+    # capitals in a hand set vary too much to compare one by one).
     cap_mm = data["meta"].get("cap_height_mm") or cap_mm_reference(glyphs, "HCO")
     cal = {}
     for c in cuts:
         if c["text"].startswith("cal:"):
-            cal.setdefault(c["pno"], []).append(c["h"])
+            cal.setdefault(c["pno"], []).append((c["h"], c["text"][4:]))
     ppm = {}
     for p in pnos:
-        n = len(cal.get(p, []))
-        if n < 3:
-            sys.exit(f"page p{p}: label at least three capitals as \"cal:H\" (or cal:C, cal:T ...) so the "
-                     f"writing size can be worked out (found {n})")
-        ppm[p] = median(cal[p]) / cap_mm
-        print(f"p{p}: {n} calibration capitals -> {ppm[p]:.2f} px per mm of the hand set")
+        ests = []
+        for h_px, X in cal.get(p, []):
+            if len(X) == 1 and X.isascii() and X.isupper():
+                ests.append(h_px / cap_mm)
+            else:
+                refs = [v["h"] for v in glyphs.get(X, []) if not v.get("synthetic")]
+                if refs:
+                    ests.append(h_px / median(refs))
+        if len(ests) < 3:
+            sys.exit(f"page p{p}: label at least three marks as \"cal:H\" (a capital) or \"cal:\u00e2\" (any character "
+                     f"the set already has) so the writing size can be worked out (usable: {len(ests)})")
+        ppm[p] = median(ests)
+        spread = (max(ests) - min(ests)) / ppm[p]
+        print(f"p{p}: {len(ests)} calibration marks -> {ppm[p]:.2f} px per mm of the hand set"
+              + (f" (spread {spread:.0%}, check the labels)" if spread > 0.35 else ""))
 
     # ---- super/subscript measurements from the (base, small) pairs
     boxes = {}
